@@ -5,7 +5,7 @@ import sys
 import time
 import datetime
 import ConfigParser
-import matplotlib.pyplot as plt
+#import matplotlib
 
 class TimeGit(object):
     def __init__(self,config_file_name):
@@ -31,8 +31,6 @@ class TimeGit(object):
             
 
     def run(self):
-        print 'run'
-        
         # get repo info
         # (make) cd to data dir
         cmd = r"git clone https://github.com/MarkHallett/TimeGitExmple.git"
@@ -41,64 +39,72 @@ class TimeGit(object):
         
         new_path = os.path.join(self.data_dir, self.git_repo)
         print 'new_path:',new_path
+        # TODO if not exits make path
         os.chdir(new_path)#return
         #print os.system('ls %s' %(new_path))
         #sys.path.append(new_path)
+        
         sys.path.append('.')
         #print os.system('pwd')        
         
+        times = []
+        print '-----------'
         
-        commit_ids = [ '5f70391', '1784d1c', 'e43c72e']        
+        commit_ids = [ '5f70391', '1784d1c', 'e43c72e','dd2fc2f','bdf4f4c','0c84f55' ,'3a0fe9d']        
+        #commit_ids = [ 'bdf4f4c','0c84f55' ,'3a0fe9d']   
         #commit_ids = [ 'e43c72e',] 
         #commit_ids = [ '70d4bcba1ab', ]
         # for each repo version
-        
-        times = []
-        print '-----------'
-        for commit_id in commit_ids:        
-            
-            print commit_id
-            #print 'A',os.system('pwd')
-            #os.chdir( new_path)
-            #os.system('cd')
-            
-            #print 'B', os.system('pwd')
-            
+        for count, commit_id in enumerate(commit_ids):        
+            #continue
+            print '...........'
+            print count,commit_id
             cmd =  'git checkout %s' %commit_id
-            
             #print cmd
-            os.system(cmd)
-            
+            os.system(cmd) #TODO check return code
+            #time.sleep(1)
+            #continue
+         
+            for mod in sys.modules.values():
+                #print mod
+                if mod:
+                    try:
+                        reload(mod)
+                    except:
+                        pass
+                    
 
-        #    switch to repo version
-        #    git checkout 1234567
-        #    # for each test file
-        #    (check test file exists)
-        #    time the run test code in repo
+            #    (check test file exists)
+            #    time the run test code in repo
+            
+            #try:
+            #    del(timegit_test)
+            #    del(timegit_test.run)
+            #except:
+            #    pass
+            
             import timegit_test
             reload(timegit_test)
+            
             start = datetime.datetime.now()
             #start = time.clock()
-            
-            #reload (timegit_test)
-            #print timegit_test
-            #import eg_code
-            #reload (TimeGitExample)
-            timegit_test.run()
-            #time.sleep(2)
+            timegit_test.run()      
             run_time = datetime.datetime.now() - start
+ 
             print 'run_time', run_time
             seconds = run_time.seconds + run_time.microseconds/1E6
             
             print 'SECONDS',seconds
-            times.append(seconds) # + run_time.microseconds)
-        
+            times.append(round(seconds,2)) 
+            
         print 'times',times
-        # get results
-        x = [1,2,3]
-        y = times        
+        x = range(len(times))
+        y = times      
         # display results
-        #
+
+        # unfortunate but must import here
+        import matplotlib.pyplot as plt
+        
         fig = plt.figure()
         plt.title(self.git_repo)
        
@@ -106,20 +112,22 @@ class TimeGit(object):
         plt.show()
         
         
+        #print timegit_test
+        #import eg_code
         
+        #reload (TimeGitExample)
+        timegit_test.run()
+
+        print 'SECONDS',seconds                
         print 'Done'
-        
-        pass
-    
+            
 
 # --------------------
 
 def test():
     config_file_name = 'config.cfg'
-    
     myTimeGit = TimeGit(config_file_name)
-    
     myTimeGit.run()   
     
-    
-test()
+if __name__ == '__main__':
+    test()

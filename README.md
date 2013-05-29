@@ -1,4 +1,4 @@
-TimeGit
+timegit
 =======
 
 Timing Git repos

@@ -31,71 +31,115 @@ class TimeGit(object):
             
 
     def run(self):
+        '''
+        
+        
+        '''
         # get repo info
-        # (make) cd to data dir
-        cmd = r"git clone https://github.com/MarkHallett/TimeGitExmple.git"
-        cmd = r"git log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short > commits.txt"
-        # add data dir to sys.path
         
-        new_path = os.path.join(self.data_dir, self.git_repo)
-        print 'new_path:',new_path
-        # TODO if not exits make path
-        os.chdir(new_path)#return
-        #print os.system('ls %s' %(new_path))
-        #sys.path.append(new_path)
+        # (make) cd to data dir   
+        #cwd = os.path.getcwd()
         
+        if not os.path.exists(self.data_dir):
+            os.mkdir(self.data_dir)
+        os.chdir(self.data_dir)
+        
+        working_dir = os.path.join(self.data_dir,self.git_repo+'_data')
+        if os.path.exists(working_dir):
+            os.chdir(working_dir) 
+            os.chdir(self.git_repo)
+        else:
+            os.mkdir(working_dir)                                   
+         
+            print working_dir  
+            os.chdir(working_dir)           
+        
+        # TODO, put in test for second run
+            cmd = r"git clone https://github.com/MarkHallett/%s.git" %self.git_repo
+            print cmd
+            try:
+                os.system(cmd)
+            except:
+                pass
+        
+            os.chdir(self.git_repo)
+            cmd = r"git log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short > ../commits.txt"
+            print cmd
+            os.system(cmd)
+        
+    
+        # read the file containing the git revisions
+        # change to with
+        f = open('../commits.txt')
+        
+        commit_ids = []
+        for count, line in enumerate(f):
+            rev = line.split(' ')[1] 
+            #print rev
+            commit_ids.append(rev)
+        f.close()
+        #print commit_ids
+        commit_ids.reverse()
+        #print commit_ids
+        
+        #return
+        # add data dir to sys.path ??
+        #return        
         sys.path.append('.')
-        #print os.system('pwd')        
+         
         
-        times = []
+        times = [0.0,] # quick way to put on origin
         print '-----------'
         
-        commit_ids = [ '5f70391', '1784d1c', 'e43c72e','dd2fc2f','bdf4f4c','0c84f55' ,'3a0fe9d']        
+        #commit_ids = [ '5f70391', '1784d1c', 'e43c72e','dd2fc2f','bdf4f4c','0c84f55' ,'3a0fe9d']        
         #commit_ids = [ 'bdf4f4c','0c84f55' ,'3a0fe9d']   
         #commit_ids = [ 'e43c72e',] 
         #commit_ids = [ '70d4bcba1ab', ]
         # for each repo version
         for count, commit_id in enumerate(commit_ids):        
+            #if count == 3: break
             #continue
             print '...........'
             print count,commit_id
+    
             cmd =  'git checkout %s' %commit_id
             #print cmd
             os.system(cmd) #TODO check return code
-            #time.sleep(1)
-            #continue
-         
+
+            # clean up new revision, del pyc and reload modules
+            os.system('find . -name \*.pyc |xargs rm') 
+            
             for mod in sys.modules.values():
                 #print mod
                 if mod:
                     try:
-                        reload(mod)
+                        reload(mod) 
                     except:
                         pass
-                    
-
-            #    (check test file exists)
-            #    time the run test code in repo
-            
-            #try:
-            #    del(timegit_test)
-            #    del(timegit_test.run)
-            #except:
-            #    pass
-            
-            import timegit_test
-            reload(timegit_test)
+                       
+            # TODO confing the funtion to run
+            try:
+                import timegit_test
+            except Exception, e:
+                print "No timing module in this revision %s" %(str(e))
+                times.append(-1)
+                continue
             
             start = datetime.datetime.now()
             #start = time.clock()
-            timegit_test.run()      
+            try:
+                timegit_test.run()      
+            except:
+                print 'No function in this revision'
+                time.append(-1)
+                continue
             run_time = datetime.datetime.now() - start
  
             print 'run_time', run_time
             seconds = run_time.seconds + run_time.microseconds/1E6
             
             print 'SECONDS',seconds
-            times.append(round(seconds,2)) 
+            times.append(seconds) 
             
         print 'times',times
         x = range(len(times))
@@ -110,15 +154,7 @@ class TimeGit(object):
        
         plt.plot(x, y)        
         plt.show()
-        
-        
-        #print timegit_test
-        #import eg_code
-        
-        #reload (TimeGitExample)
-        timegit_test.run()
-
-        print 'SECONDS',seconds                
+            
         print 'Done'
             
 

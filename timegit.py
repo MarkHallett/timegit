@@ -123,8 +123,8 @@ class TimeGit(object):
                 cmd = "%s.%s" %(self.test_module, self.test_function)
                 exec(cmd)      
             except:
-                print 'No function in this revision'
-                time.append(-1)
+                print 'No function in this revision. (%s)' %cmd
+                times.append(-1)
                 continue
             run_time = time.time() - start
  

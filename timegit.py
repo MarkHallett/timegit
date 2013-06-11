@@ -4,28 +4,39 @@ import os
 import sys
 import time
 import ConfigParser
+import argparse
 #import matplotlib
 
 class TimeGit(object):
-    def __init__(self,config_file_name):
+    def __init__(self,args,config_file_name):
         # read config info   
         print config_file_name
         parser = ConfigParser.SafeConfigParser()  
         parser.read(config_file_name)  
         self.git_repo = parser.get('TimeGit', 'git_repo')   
         self.data_dir = parser.get('TimeGit', 'data_dir') 
-        self.test_module = parser.get('TimeGit', 'test_module') 
-        self.test_function = parser.get('TimeGit', 'test_function')   
-        self.debug = parser.get('TimeGit', 'debug') 
         
-        if self.debug:
-            print 'Config params'
-            print '  confing_file_name', config_file_name
-            print '  git_repo', self.git_repo
-            print '  data_dir', self.data_dir
-            print '  test_module', self.test_module
-            print '  test_function', self.test_function
+        if args.module:
+            self.test_module = args.module
+        else:
+            self.test_module = parser.get('TimeGit', 'test_module') 
             
+        if args.function_call:
+            self.test_function = args.function_call
+        else:
+            self.test_function = parser.get('TimeGit', 'test_function')   
+        #self.debug = parser.get('TimeGit', 'debug') 
+        
+        if 1: #self.debug:
+        #    print 'Config params'
+        #    print '  confing_file_name', config_file_name
+        #    print '  git_repo', self.git_repo
+        #    print '  data_dir', self.data_dir
+        #    print '  test_module', self.test_module
+             print '  config_file_name', config_file_name
+             print '  test_module', self.test_module
+             print '  test_function', self.test_function
+
 
     def run(self):
         '''
@@ -115,7 +126,7 @@ class TimeGit(object):
                 exec(cmd)
             except Exception, e:
                 print "No timing module (%s) in this revision. %s" %(self.test_module,str(e))
-                times.append(-1)
+                times.append(0)
                 continue
             
             start = time.time()
@@ -124,7 +135,7 @@ class TimeGit(object):
                 exec(cmd)      
             except:
                 print 'No function in this revision. (%s)' %cmd
-                times.append(-1)
+                times.append(0)
                 continue
             run_time = time.time() - start
  
@@ -150,10 +161,30 @@ class TimeGit(object):
 
 # --------------------
 
-def test():
-    config_file_name = 'config.cfg'
-    myTimeGit = TimeGit(config_file_name)
+def test(args):
+    if args.config_file:
+        config_file_name = args.config_file
+    else:
+        config_file_name = 'config.cfg'
+    myTimeGit = TimeGit(args,config_file_name)
     myTimeGit.run()   
     
 if __name__ == '__main__':
-    test()
+    parser = argparse.ArgumentParser(description='Time git repos')
+    parser.add_argument('-c', action='store', dest='config_file',
+                    help='config file')
+    parser.add_argument('-f', action='store', dest='function_call',
+                       help='function call')
+    parser.add_argument('-m', action='store', dest='module',
+                       help='module')
+
+    # v verbosity
+    # g resfesh from git 
+    # e errrors (-1, 0, not show)
+    # TODO if module.test does not exist dont record
+    
+    args = parser.parse_args()
+    
+    print args.function_call
+    print 'Done'
+    test(args)

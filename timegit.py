@@ -5,12 +5,15 @@ import sys
 import time
 import ConfigParser
 import argparse
+import logging
 #import matplotlib
 
 class TimeGit(object):
     def __init__(self,args,config_file_name):
+        self.loggerTimeGit = logging.getLogger('TimeGit')
+        self.loggerTimeGit.debug('Creation of TimeGit')        
+        
         # read config info   
-        print config_file_name
         parser = ConfigParser.SafeConfigParser()  
         parser.read(config_file_name)  
         self.git_repo = parser.get('TimeGit', 'git_repo')   
@@ -24,26 +27,21 @@ class TimeGit(object):
         if args.function_call:
             self.test_function = args.function_call
         else:
-            self.test_function = parser.get('TimeGit', 'test_function')   
-        #self.debug = parser.get('TimeGit', 'debug') 
+            self.test_function = parser.get('TimeGit', 'test_function')    
         
-        if 1: #self.debug:
-        #    print 'Config params'
-        #    print '  confing_file_name', config_file_name
-        #    print '  git_repo', self.git_repo
-        #    print '  data_dir', self.data_dir
-        #    print '  test_module', self.test_module
-             print '  config_file_name', config_file_name
-             print '  test_module', self.test_module
-             print '  test_function', self.test_function
+        self.loggerTimeGit.debug('config_file_name: %s' %config_file_name) 
+        self.loggerTimeGit.debug('git_repo: %s' %self.git_repo) 
+        self.loggerTimeGit.debug('data_dir: %s' %self.data_dir)
+        self.loggerTimeGit.debug('test_module: %s' %self.test_module) 
+        self.loggerTimeGit.debug('test_function: %s' %self.test_function) 
+
 
     def _prep(self):
-        pass
+        self.loggerTimeGit.debug('_prep') 
         # (make) cd to data dir           
         if not os.path.exists(self.data_dir):
-           os.mkdir(self.data_dir)
+            os.mkdir(self.data_dir)
         os.chdir(self.data_dir)
-   
        
         repo_path,fileExtension = os.path.splitext(self.git_repo)   
         self.repo_name = repo_path.split('/')[-1] 
@@ -51,20 +49,14 @@ class TimeGit(object):
        
         data_dir = os.path.join(self.data_dir,self.repo_name +'_data')
         
+        if not os.path.isdir(data_dir):
+            os.mkdir(data_dir) 
+        os.chdir(data_dir)
+                
         
-       
-        if os.path.exists(data_dir):
-            os.chdir(data_dir) 
-            os.chdir(self.repo_name)
-        else:
-            # data dir does not exist, create it, clone the repo, and get the revisions
-            # only needed first time around, delete data dir to refresh
-            os.mkdir(data_dir)                                   
-        
-            print data_dir  
-            os.chdir(data_dir)           
-       
-       
+    def _getdatafromgithub(self):
+            self.loggerTimeGit.debug('_getdatafromgithub')
+        #if not os.path.isfile(self.repo_name):     
             cmd = r"git clone %s" %self.git_repo
             print cmd
             try:
@@ -72,16 +64,15 @@ class TimeGit(object):
             except:
                 pass
        
+        # if file commits.txt does not exist       
             os.chdir(self.repo_name)
             cmd = r"git log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short > ../commits.txt"
             print cmd
             os.system(cmd)    
 
-
-    def _getdatafromgithub(self):
-        pass
-
+   
     def _getgitcommitids(self):
+        self.loggerTimeGit.debug('_getgitcommitids')
         f = open('../commits.txt')
         commit_ids = []
         for count, line in enumerate(f):
@@ -91,8 +82,10 @@ class TimeGit(object):
         f.close()      
         commit_ids.reverse()
         return commit_ids
+
               
     def _runtestfunction(self, commit_ids):
+        self.loggerTimeGit.debug('_runtestfunction')
         # add data dir to sys.path ??        
         sys.path.append('.')
           
@@ -144,6 +137,7 @@ class TimeGit(object):
     
     
     def _show(self,times):
+        self.loggerTimeGit.debug('_show')
         # display results
         # unfortunate but must import here
         import matplotlib.pyplot as plt
@@ -167,6 +161,7 @@ class TimeGit(object):
         self._prep()
         self._getdatafromgithub()
         commit_ids = self._getgitcommitids()
+        return
         times = self._runtestfunction(commit_ids)  
         self._show(times)
             
@@ -175,7 +170,7 @@ class TimeGit(object):
 
 # --------------------
 
-def test(args):
+def run(args):
     if args.config_file:
         config_file_name = args.config_file
     else:
@@ -185,20 +180,85 @@ def test(args):
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Time git repos')
+    # basic args
     parser.add_argument('-c', action='store', dest='config_file',
                     help='config file')
     parser.add_argument('-f', action='store', dest='function_call',
                        help='function call')
     parser.add_argument('-m', action='store', dest='module',
                        help='module')
+    # optional args
+    parser.add_argument('-v', action='store', dest='verbosity',
+                         help='verbosity: debug, info, warning, error, critical')
+    
+    # advanced args
+    
 
-    # v verbosity
     # g resfesh from git 
+    # (g gui) may be diff module due to wx import
     # e errrors (-1, 0, not show)
     # TODO if module.test does not exist dont record
+    # r refresh
+    #(s store times)
+    #(a average times)
+
     
     args = parser.parse_args()
+
+    print args.verbosity
+    LOG_FILENAME = 'timegit.log'
+    LEVELS = { 'debug':logging.DEBUG,
+                'info':logging.INFO,
+                'warning':logging.WARNING,
+                'error':logging.ERROR,
+                'critical':logging.CRITICAL,
+                }    
     
-    print args.function_call
+    #g_logger = logging.getLogger('TimeGitLogger')
+    level_name = args.verbosity
+    level = LEVELS.get(level_name, logging.NOTSET)
+    
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%y-%m-%d %H:%M:%S',
+                        filename='timegit.log',
+                        filemode='w') 
+    
+    
+    # define a Handler which writes messages or higher to the sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(level)
+    # set a format which is simpler for console use
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    # tell the handler to use this format
+    console.setFormatter(formatter)
+    # add the handler to the root logger
+    logging.getLogger('').addHandler(console)
+    
+    
+    
+    # Now, we can log to the root logger, or any other logger. First the root...
+    logging.info('Jackdaws love my big sphinx of quartz.')
+    
+    # Now, define a couple of other loggers which might represent areas in your
+    # application:
+    
+    logger1 = logging.getLogger('myapp.area1')
+    logger2 = logging.getLogger('myapp.area2')
+    
+    logger1.debug('Quick zephyrs blow, vexing daft Jim.')
+    logger1.info('How quickly daft jumping zebras vex.')
+    logger2.warning('Jail zesty vixen who grabbed pay from quack.')
+    logger2.error('The five boxing wizards jump quickly.')       
+    
+    '''
+    logger.debug('This is a debug message')
+    logger.info('This is an info message')
+    logger.warning('This is a warning message')
+    logger.error('This is an error message')
+    logger.critical('This is a critical error message')    
+    '''
+    
+    #run(args)
     print 'Done'
-    test(args)
+    

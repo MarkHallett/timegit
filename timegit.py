@@ -11,7 +11,7 @@ import logging
 class TimeGit(object):
     def __init__(self,args,config_file_name):
         self.loggerTimeGit = logging.getLogger('TimeGit')
-        self.loggerTimeGit.debug('Creation of TimeGit')        
+        self.loggerTimeGit.debug('__init__')        
         
         # read config info   
         parser = ConfigParser.SafeConfigParser()  
@@ -45,8 +45,7 @@ class TimeGit(object):
        
         repo_path,fileExtension = os.path.splitext(self.git_repo)   
         self.repo_name = repo_path.split('/')[-1] 
-        print self.repo_name 
-       
+        self.loggerTimeGit.debug('repo_name: %s' %self.repo_name)      
         data_dir = os.path.join(self.data_dir,self.repo_name +'_data')
         
         if not os.path.isdir(data_dir):
@@ -55,30 +54,45 @@ class TimeGit(object):
                 
         
     def _getdatafromgithub(self):
-            self.loggerTimeGit.debug('_getdatafromgithub')
+        self.loggerTimeGit.debug('_getdatafromgithub')
         #if not os.path.isfile(self.repo_name):     
-            cmd = r"git clone %s" %self.git_repo
-            print cmd
+        cmd = r"git clone %s" %self.git_repo
+        self.loggerTimeGit.debug('%s' %cmd)
+        
+        if os.path.isdir(self.repo_name):
+            self.loggerTimeGit.info('dir for (%s) alread exists' %self.repo_name)            
+        else:
             try:
-                os.system(cmd)
-            except:
-                pass
+                x = os.system(cmd)
+                if x:
+                    self.loggerTimeGit.warning('rtn %s' %x)  
+            
+            except Exception, e:
+                self.loggerTimeGit.critical( 'Error running %s: %s' %(cmd, str(e)))
+                self.loggerTimeGit.exception('zzz')
        
-        # if file commits.txt does not exist       
-            os.chdir(self.repo_name)
-            cmd = r"git log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short > ../commits.txt"
-            print cmd
-            os.system(cmd)    
-
    
     def _getgitcommitids(self):
         self.loggerTimeGit.debug('_getgitcommitids')
-        f = open('../commits.txt')
+        
+        # if file commits.txt does not exist       
+        commits_file = '../commits.txt'
+        os.chdir(self.repo_name)
+        
+        if os.path.isfile(commits_file):
+            self.loggerTimeGit.info('commits file exits')
+        else:
+            cmd = r"git log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short > " + commits_file
+            self.loggerTimeGit.debug(cmd)
+            os.system(cmd)         
+        
+        # use with
+        f = open(commits_file)
         commit_ids = []
         for count, line in enumerate(f):
-                  rev = line.split(' ')[1] 
-                  #print rev
-                  commit_ids.append(rev)
+            rev = line.split(' ')[1] 
+            #print rev
+            commit_ids.append(rev)
         f.close()      
         commit_ids.reverse()
         return commit_ids
@@ -90,11 +104,11 @@ class TimeGit(object):
         sys.path.append('.')
           
         times = [0.0,] # start from origin
-        print '-----------'
+        
           # for each repo version
         for count, commit_id in enumerate(commit_ids):        
             #if count == 3: break
-            print '...........'
+            self.loggerTimeGit.info('%s commit_id: %s ........' %(count,commit_id))
             print count,commit_id
       
             cmd =  'git checkout %s' %commit_id
@@ -124,7 +138,7 @@ class TimeGit(object):
             start = time.time()
             try:
                 cmd = "%s.%s" %(self.test_module, self.test_function)
-                exec(cmd)      
+                exec(cmd)
             except:
                 print 'No function in this revision. (%s)' %cmd
                 times.append(0)
@@ -141,7 +155,7 @@ class TimeGit(object):
         # display results
         # unfortunate but must import here
         import matplotlib.pyplot as plt
-        print 'times',times       
+        self.loggerTimeGit.info( 'times: %s' %times)       
         x = range(len(times))
         y = times         
 
@@ -157,16 +171,12 @@ class TimeGit(object):
         Short script to extract, run, time, and display the performance
         of code in github
         '''
-        
         self._prep()
         self._getdatafromgithub()
         commit_ids = self._getgitcommitids()
-        return
         times = self._runtestfunction(commit_ids)  
-        self._show(times)
-            
-        print 'Done'
-            
+        #self._show(times)
+                    
 
 # --------------------
 
@@ -205,7 +215,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    print args.verbosity
+    print 'Verbosity', args.verbosity
     LOG_FILENAME = 'timegit.log'
     LEVELS = { 'debug':logging.DEBUG,
                 'info':logging.INFO,
@@ -237,6 +247,7 @@ if __name__ == '__main__':
     
     
     
+    '''
     # Now, we can log to the root logger, or any other logger. First the root...
     logging.info('Jackdaws love my big sphinx of quartz.')
     
@@ -251,7 +262,7 @@ if __name__ == '__main__':
     logger2.warning('Jail zesty vixen who grabbed pay from quack.')
     logger2.error('The five boxing wizards jump quickly.')       
     
-    '''
+    
     logger.debug('This is a debug message')
     logger.info('This is an info message')
     logger.warning('This is a warning message')
@@ -259,6 +270,6 @@ if __name__ == '__main__':
     logger.critical('This is a critical error message')    
     '''
     
-    #run(args)
-    print 'Done'
+    run(args)
+    logging.info('Done')
     

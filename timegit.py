@@ -109,7 +109,6 @@ class TimeGit(object):
         for count, commit_id in enumerate(commit_ids):        
             #if count == 3: break
             self.loggerTimeGit.info('%s commit_id: %s ........' %(count,commit_id))
-            print count,commit_id
       
             cmd =  'git checkout %s' %commit_id
             #print cmd
@@ -130,18 +129,23 @@ class TimeGit(object):
             try:
                 cmd = "import %s" %self.test_module
                 exec(cmd)
+            except Exception, ImportError:
+                self.loggerTimeGit.debug( "No module (%s) in this revision. %s" %(self.test_module,str(ImportError)))
+                continue
             except Exception, e:
-                print "No timing module (%s) in this revision. %s" %(self.test_module,str(e))
-                times.append(0)
+                self.loggerTimeGit.error( "Cant %s: %s" %(cmd,str(e)))
+                times.append(-1)
                 continue
               
             start = time.time()
             try:
                 cmd = "%s.%s" %(self.test_module, self.test_function)
                 exec(cmd)
-            except:
-                print 'No function in this revision. (%s)' %cmd
-                times.append(0)
+            except NameError:
+                self.loggerTimeGit.debug('No function in this revision. (%s): %s' %(cmd, str(NameError)))
+            except Exception, e:
+                self.loggerTimeGit.error("Cant run %s: %s" %(cmd, str(e)))
+                times.append(-1)
                 continue
             run_time = time.time() - start
    
@@ -175,7 +179,7 @@ class TimeGit(object):
         self._getdatafromgithub()
         commit_ids = self._getgitcommitids()
         times = self._runtestfunction(commit_ids)  
-        #self._show(times)
+        self._show(times)
                     
 
 # --------------------

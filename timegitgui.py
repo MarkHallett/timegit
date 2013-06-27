@@ -3,24 +3,25 @@
 import os
 import wx
 import ConfigParser
+import timegit
 
 # Some classes to use for the notebook pages.  Obviously you would
 # want to use something more meaningful for your application, these
 # are just for illustration.
 
 class PageOne(wx.Panel):
-    def __init__(self, parent, test_module, test_function):
+    def __init__(self, parent, module, function_call):
         p = wx.Panel.__init__(self, parent)
         
         t2 = wx.StaticText(self, -1, "Module", (15,20))
-        self.b2 = wx.TextCtrl(self,-1, test_module, pos=(120,20))        
+        self.module = wx.TextCtrl(self,-1, module, pos=(120,20))        
 
         t3 = wx.StaticText(self, -1, "Function Call", (15,50))
-        self.z3 = wx.TextCtrl(self,-1, test_function, pos=(120,50))        #zz = wx.StaticText(self, -1, "This", pos = (10,12) )
+        self.function_call = wx.TextCtrl(self,-1, function_call, pos=(120,50))        #zz = wx.StaticText(self, -1, "This", pos = (10,12) )
 
     def setArgs(self,test_module, test_function):                 
-        self.b2.SetValue(test_module)
-        self.z3.SetValue(test_function)
+        self.module.SetValue(test_module)
+        self.function_call.SetValue(test_function)
     
 class PageTwo(wx.Panel):
     def __init__(self, parent):
@@ -60,12 +61,17 @@ class MainFrame(wx.Frame):
         
         # top row
         b1 = wx.StaticText(p,-1,'Config file'  ) 
-        
-        self.config_file_name = os.path.join(os.getcwd(),'config.cfg')
+
+        self.config_file_dir = os.getcwd()
+        self.config_filename = 'config.cfg'
+        self.config_file_name = os.path.join(self.config_file_dir, self.config_filename)
+
         self.getConfigArgsFromFile()
         
         textCtrlText = self.config_file_name
-        self.b2 = wx.TextCtrl(p,-1, textCtrlText ,style = wx.TE_READONLY )
+        self.b2 = wx.TextCtrl(p,4, textCtrlText) 
+        wx.EVT_KILL_FOCUS(self.b2, self.OnConfigExit)        
+        
         #self.b2.SetBackgroundColour((237,237,237))
         
         b3 = wx.Button(p,3,'Browse'  )  
@@ -117,8 +123,8 @@ class MainFrame(wx.Frame):
         # bottom row
         b4 = wx.Button(p,1,'Close')
         self.Bind(wx.EVT_BUTTON, self.OnClose, id=1)
-        b6 = wx.Button(p,2,'Run'  )  
-        self.Bind(wx.EVT_BUTTON, self.OnClose, id=2)
+        b6 = wx.Button(p,6,'Run'  )  
+        self.Bind(wx.EVT_BUTTON, self.OnRun, id=6)
               
         sizerR3 = wx.BoxSizer(wx.HORIZONTAL)
         sizerR3.Add(b4,0, flag = wx.ALIGN_LEFT)
@@ -136,6 +142,12 @@ class MainFrame(wx.Frame):
         sizer.Add(sizerR3, flag = wx.EXPAND|wx.ALL, border = b)
         p.SetSizer(sizer)     
         
+    def OnConfigExit(self,e):      
+        self.config_file_name = self.b2.GetValue()
+        if os.path.isfile(self.config_file_name):        
+            self.getConfigArgsFromFile()
+            self.SetArgs()        
+
     def getConfigArgsFromFile(self): 
         #print 'getConfigArgs', self.config_file_name
         
@@ -148,7 +160,6 @@ class MainFrame(wx.Frame):
                 parser = ConfigParser.SafeConfigParser()  
                 parser.read(self.config_file_name)  
                 self.git_repo = parser.get('TimeGit', 'git_repo')
-                print self.git_repo
                 self.data_dir = parser.get('TimeGit', 'data_dir') 
                 self.test_module = parser.get('TimeGit', 'test_module') 
                 self.test_function = parser.get('TimeGit', 'test_function') 
@@ -163,13 +174,19 @@ class MainFrame(wx.Frame):
         self.page1.setArgs(self.test_module,self.test_function)
 
     def ReadArgs(self):
-        
         pass
       
         
     def OnBrowseConfigFile(self,e):
         """ Open a file"""
-        self.dirname = os.getcwd()
+        
+        if os.path.isdir(self.b2.GetValue()):
+            self.dirname = self.b2.GetValue()
+        elif os.path.isdir(os.path.dirname(self.b2.GetValue())):
+            self.dirname = os.path.dirname(self.b2.GetValue())
+        else:
+            self.dirname = os.getcwd() # TODO get path from b2
+        
         dlg = wx.FileDialog(self, "Choose a config file", self.dirname, '', "*.cfg", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.filename = dlg.GetFilename()
@@ -184,7 +201,9 @@ class MainFrame(wx.Frame):
         
     def OnBrowseDataDir(self,e):
         self.dirname = os.getcwd()
-        dlg = wx.DirDialog(self, "Choose a directory:")
+        data_dir = os.path.dirname(os.getcwd())
+        data_dir = os.path.join(data_dir,'timegitdata')
+        dlg = wx.DirDialog(self, "Choose a data directory:" , data_dir) # TODO Use dir in the box, (box on exit do)
         if dlg.ShowModal() == wx.ID_OK:
             #print "You chose %s" % dlg.GetPath()
             self.b32.SetValue(dlg.GetPath() )            
@@ -194,7 +213,13 @@ class MainFrame(wx.Frame):
         self.Close(True)
         
     def OnRun(self,event):
-        self.Close(True)        
+        class Args():
+            def __init__(self, config_file, module, function_call):
+                self.config_file = config_file
+                self.module = None #module
+                self.function_call = None #function_call
+        args = Args(self.config_file_name, self.page1.module, self.page1.function_call)
+        timegit.run(args)
         
         
 if __name__ == "__main__":

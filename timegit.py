@@ -7,6 +7,7 @@ import ConfigParser
 import argparse
 import logging
 #import matplotlib
+import matplotlib.pyplot as plt
 
 class TimeGit(object):
     def __init__(self,args,config_file_name):
@@ -117,9 +118,19 @@ class TimeGit(object):
             # clean up new revision, del pyc and reload modules
             # use walk for os independance
             os.system('find . -name \*.pyc |xargs rm') 
-              
+            
+            #print '-------------'
             for mod in sys.modules.values():
                 if mod:
+                    
+                    if mod.__name__.startswith('matplotlib.'):
+                        continue
+                    if mod.__name__.startswith('numpy.'):
+                        continue    
+                    if mod.__name__.startswith('wx.'):
+                        continue                        
+                    
+                    #print mod.__name__
                     try:
                         reload(mod) 
                     except:
@@ -158,7 +169,7 @@ class TimeGit(object):
         self.loggerTimeGit.debug('_show')
         # display results
         # unfortunate but must import here
-        import matplotlib.pyplot as plt
+        #import matplotlib.pyplot as plt
         self.loggerTimeGit.info( 'times: %s' %times)       
         x = range(len(times))
         y = times         
@@ -166,8 +177,10 @@ class TimeGit(object):
         fig = plt.figure()
         plt.title(self.git_repo)
             
-        plt.plot(x, y)        
+        plt.plot(x, y)   
+        plt.savefig('./test.pdf')
         plt.show()       
+        
         
     
     def run(self):
@@ -215,6 +228,7 @@ if __name__ == '__main__':
     # r refresh
     #(s store times)
     #(a average times)
+    # o outputfile
 
     
     args = parser.parse_args()

@@ -105,7 +105,7 @@ class TimeGit(object):
         sys.path.append('.')
           
         times = [0.0,] # start from origin
-        
+        #times = []
           # for each repo version
         for count, commit_id in enumerate(commit_ids):        
             #if count == 3: break
@@ -122,12 +122,14 @@ class TimeGit(object):
             #print '-------------'
             for mod in sys.modules.values():
                 if mod:
-                    
+                    #print mod.__name__
                     if mod.__name__.startswith('matplotlib.'):
                         continue
                     if mod.__name__.startswith('numpy.'):
                         continue    
                     if mod.__name__.startswith('wx.'):
+                        continue                        
+                    if mod.__name__.startswith('logging'):
                         continue                        
                     
                     #print mod.__name__
@@ -137,6 +139,7 @@ class TimeGit(object):
                         pass
                          
             # TODO confing the funtion to run
+            self.loggerTimeGit.debug( 'TEST')
             try:
                 cmd = "import %s" %self.test_module
                 exec(cmd)

@@ -2,6 +2,7 @@
 
 import os
 import wx
+import logging
 import ConfigParser
 import timegit
 
@@ -11,6 +12,7 @@ import timegit
 
 class PageOne(wx.Panel):
     def __init__(self, parent, module, function_call):
+
         p = wx.Panel.__init__(self, parent)
         
         t2 = wx.StaticText(self, -1, "Module", (15,20))
@@ -26,25 +28,23 @@ class PageOne(wx.Panel):
 class PageTwo(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        box = wx.StaticBox(self, -1, 'Verbosity')
-        box.SetMaxSize((100,130))
-        #box.Border(30)
+        v = wx.StaticText(self,-1, "Verbosity     ")
+        
         r1 = wx.RadioButton(self,-1, "Debug", style=wx.RB_GROUP)
         r2 = wx.RadioButton(self,-1, "Info")
         r3 = wx.RadioButton(self,-1, "Warning")
         r4 = wx.RadioButton(self,-1, "Error")
         r5 = wx.RadioButton(self,-1, "Critical")
       
-        sizer = wx.StaticBoxSizer(box,wx.VERTICAL)
-        sizer.Add(r1, 0)
-        sizer.Add(r2, 0 )
-        sizer.Add(r3,0 )
-        sizer.Add(r4,0 )
-        sizer.Add(r5,0 )
-        self.SetSizer(sizer)
-        
-        # TODO read default confing file (if it exists)
-        # set all params from it
+        sizerV = wx.BoxSizer(wx.HORIZONTAL)
+        sizerV.Add(v,0)
+        sizerV.Add(r1,0)
+        sizerV.Add(r2,0)
+        sizerV.Add(r3,0)
+        sizerV.Add(r4,0)
+        sizerV.Add(r5,0)
+        self.SetSizer(sizerV)
+       
         
 
 class PageThree(wx.Panel):
@@ -55,6 +55,9 @@ class PageThree(wx.Panel):
 
 class MainFrame(wx.Frame):
     def __init__(self):
+        logger = logging.getLogger('timegitgui')
+        logger.info('hi from xx')
+        
         wx.Frame.__init__(self, None, title="TimeGit", size = (600,400) )
         b = 10
         p = wx.Panel(self)
@@ -110,15 +113,15 @@ class MainFrame(wx.Frame):
         self.page1 = PageOne(nb,self.test_module, self.test_function)
         page2 = PageTwo(nb)
         page3 = PageThree(nb)
-        page4 = PageThree(nb)
-        page5 = PageThree(nb)
+        #page4 = PageThree(nb)
+        #page5 = PageThree(nb)
       
         # add the pages to the notebook with the label to show on the tab
         nb.AddPage(self.page1, "Basic")
         nb.AddPage(page2, "Optional")
         nb.AddPage(page3, "Advanced")
-        nb.AddPage(page4, "Log")
-        nb.AddPage(page5, "Output")
+        #nb.AddPage(page4, "Log")
+        #nb.AddPage(page5, "Output")
       
         # bottom row
         b4 = wx.Button(p,1,'Close')
@@ -223,6 +226,17 @@ class MainFrame(wx.Frame):
         
         
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
+                            datefmt='%y-%m-%d %H:%M:%S',
+                            filename='timegitgui.log',
+                            filemode='w')   
+    
+    logger = logging.getLogger('timegitgui')
+    logger.info('TEST')
+    
+    
+    
     app = wx.App()
     x = MainFrame()
     x.Center()

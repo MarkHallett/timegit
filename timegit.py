@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 class TimeGit(object):
     def __init__(self,args,config_file_name):
-        self.loggerTimeGit = logging.getLogger('TimeGit')
+        self.loggerTimeGit = logging.getLogger(__name__)
         self.loggerTimeGit.debug('__init__')        
         
         # read config info   
@@ -73,7 +73,7 @@ class TimeGit(object):
                 self.loggerTimeGit.exception('zzz')
        
    
-    def _getgitcommitids(self):
+    def _getgitcommitdetails(self):
         self.loggerTimeGit.debug('_getgitcommitids')
         
         # if file commits.txt does not exist       
@@ -83,23 +83,24 @@ class TimeGit(object):
         if os.path.isfile(commits_file):
             self.loggerTimeGit.info('commits file exits')
         else:
-            cmd = r"git log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short > " + commits_file
+            cmd = r"git log --pretty=format:'%h %ad | %s%d [%an]' --date=short > " + commits_file
             self.loggerTimeGit.debug(cmd)
             os.system(cmd)         
         
         # use with
         f = open(commits_file)
-        commit_ids = []
+        commit_details = []
         for count, line in enumerate(f):
-            rev = line.split(' ')[1] 
-            #print rev
-            commit_ids.append(rev)
+            rev = line.split(' ')[0] 
+            rev_date = line.split(' ')[1]
+            rev_comment = line.split('|')[1].split('[')[0]
+            commit_details.append((rev,rev_date,rev_comment))
         f.close()      
-        commit_ids.reverse()
-        return commit_ids
+        commit_details.reverse()
+        return commit_details
 
               
-    def _runtestfunction(self, commit_ids):
+    def _runtestfunction(self, rev_details):
         self.loggerTimeGit.debug('_runtestfunction')
         # add data dir to sys.path ??        
         sys.path.append('.')
@@ -107,9 +108,10 @@ class TimeGit(object):
         times = [0.0,] # start from origin
         #times = []
           # for each repo version
-        for count, commit_id in enumerate(commit_ids):        
+        for count, rev_detail in enumerate(rev_details):        
             #if count == 3: break
-            self.loggerTimeGit.info('%s commit_id: %s ........' %(count,commit_id))
+            commit_id, rev_date, rev_comment = rev_detail
+            self.loggerTimeGit.info('%s commit_id: %s %s' %(count,commit_id,rev_comment))
       
             cmd =  'git checkout %s' %commit_id
             #print cmd
@@ -193,7 +195,7 @@ class TimeGit(object):
         '''
         self._prep()
         self._getdatafromgithub()
-        commit_ids = self._getgitcommitids()
+        commit_ids = self._getgitcommitdetails()
         times = self._runtestfunction(commit_ids)  
         self._show(times)
                     

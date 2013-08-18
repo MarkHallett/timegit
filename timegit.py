@@ -1,15 +1,25 @@
 # timegit
 
+'''
+Script to 
+ - check out a repo from github
+ - time a function on each of the checkouts
+ - display the results
+'''
+
 import os
 import sys
 import time
 import ConfigParser
 import argparse
 import logging
-#import matplotlib
 import matplotlib.pyplot as plt
 
+
 class TimeGit(object):
+    '''
+    Main class to get and display the timing data
+    '''
     def __init__(self,args,config_file_name):
         self.loggerTimeGit = logging.getLogger(__name__)
         self.loggerTimeGit.debug('__init__')        
@@ -20,6 +30,7 @@ class TimeGit(object):
         self.git_repo = parser.get('TimeGit', 'git_repo')   
         self.data_dir = parser.get('TimeGit', 'data_dir') 
         
+        # passed in args will override config file args
         if args.module:
             self.test_module = args.module
         else:
@@ -38,6 +49,9 @@ class TimeGit(object):
 
 
     def _prep(self):
+        '''
+        create and move to the data dir
+        '''
         self.loggerTimeGit.debug('_prep') 
         # (make) cd to data dir           
         if not os.path.exists(self.data_dir):
@@ -52,14 +66,14 @@ class TimeGit(object):
         if not os.path.isdir(data_dir):
             os.mkdir(data_dir) 
         os.chdir(data_dir)
-                
+    
         
     def _getdatafromgithub(self):
         self.loggerTimeGit.debug('_getdatafromgithub')
         #if not os.path.isfile(self.repo_name):     
         cmd = r"git clone %s" %self.git_repo
         self.loggerTimeGit.debug('%s' %cmd)
-        
+              
         if os.path.isdir(self.repo_name):
             self.loggerTimeGit.info('dir for (%s) alread exists' %self.repo_name)            
         else:
@@ -106,22 +120,32 @@ class TimeGit(object):
         sys.path.append('.')
           
         times = [0.0,] # start from origin
-        #times = []
-          # for each repo version
+    
+        # for each repo version
         for count, rev_detail in enumerate(rev_details):        
-            #if count == 3: break
+            #if count == 8: break
             commit_id, rev_date, rev_comment = rev_detail
+            self.loggerTimeGit.debug('---------------------------------')
             self.loggerTimeGit.info('%s commit_id: %s %s' %(count,commit_id,rev_comment))
       
+            os.system('find . -name \*.pyc |xargs rm') 
+            os.system('find . -name \*.py |xargs rm') 
+      
             cmd =  'git checkout %s' %commit_id
-            #print cmd
-            os.system(cmd) #TODO check return code
-  
+            
+            try:
+                rtn = os.system(cmd) #TODO check return code
+            except Exception, e:
+                msg = 'Fail to run %s (%s)' %(cmd,str(e))
+                self.loggerTimeGit.critical(msg)
+            
+            if rtn !=0:
+                msg = 'Error (%s) from %s' %(rtn, cmd)
+                self.loggerTimeGit.critical('msg')
+            
+            
             # clean up new revision, del pyc and reload modules
             # use walk for os independance
-            os.system('find . -name \*.pyc |xargs rm') 
-            
-            #print '-------------'
             for mod in sys.modules.values():
                 if mod:
                     #print mod.__name__
@@ -133,29 +157,41 @@ class TimeGit(object):
                         continue                        
                     if mod.__name__.startswith('logging'):
                         continue                        
-                    
+                    if mod.__name__.startswith('TimeGit'):
+                        continue
+                    if mod.__name__.startswith('ConfigParser#'):
+                        continue                
                     #print mod.__name__
                     try:
                         reload(mod) 
                     except:
                         pass
-                         
+                                    
+           
             # TODO confing the funtion to run
-            self.loggerTimeGit.debug( 'TEST')
+            try: 
+                cmd = "del %s" %self.test_module
+                exec(cmd)
+                #self.loggerTimeGit.error('del worked')
+            except:
+                pass
+
+            
             try:
                 cmd = "import %s" %self.test_module
                 exec(cmd)
             except Exception, ImportError:
-                self.loggerTimeGit.debug( "No module (%s) in this revision. %s" %(self.test_module,str(ImportError)))
+                self.loggerTimeGit.error( "No module (%s) in this revision. %s" %(self.test_module,str(ImportError)))
                 continue
             except Exception, e:
                 self.loggerTimeGit.error( "Cant %s: %s" %(cmd,str(e)))
                 times.append(-1)
                 continue
-              
+            
             start = time.time()
             try:
                 cmd = "%s.%s" %(self.test_module, self.test_function)
+                self.loggerTimeGit.debug('running: %s' %cmd)
                 exec(cmd)
             except NameError:
                 self.loggerTimeGit.debug('No function in this revision. (%s): %s' %(cmd, str(NameError)))
@@ -163,12 +199,14 @@ class TimeGit(object):
                 self.loggerTimeGit.error("Cant run %s: %s" %(cmd, str(e)))
                 times.append(-1)
                 continue
+            
             run_time = time.time() - start
-   
-            print 'run_time', run_time
-            times.append(run_time)         
+            self.loggerTimeGit.debug('runtime: %s' %run_time)
+            times.append(run_time)
+    
         return times
     
+
     
     def _show(self,times):
         self.loggerTimeGit.debug('_show')
@@ -190,16 +228,15 @@ class TimeGit(object):
     
     def run(self):
         '''
-        Short script to extract, run, time, and display the performance
+        Short function to extract, run, time, and display the performance
         of code in github
         '''
         self._prep()
         self._getdatafromgithub()
         commit_ids = self._getgitcommitdetails()
         times = self._runtestfunction(commit_ids)  
+        os.chdir('../..')  
         self._show(times)
-                    
-
 # --------------------
 
 def run(args):
@@ -207,8 +244,10 @@ def run(args):
         config_file_name = args.config_file
     else:
         config_file_name = 'config.cfg'
+        
     myTimeGit = TimeGit(args,config_file_name)
     myTimeGit.run()   
+    
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Time git repos')
@@ -238,7 +277,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    print 'Verbosity', args.verbosity
+    #print 'Verbosity', args.verbosity
     LOG_FILENAME = 'timegit.log'
     LEVELS = { 'debug':logging.DEBUG,
                 'info':logging.INFO,
@@ -269,30 +308,7 @@ if __name__ == '__main__':
     logging.getLogger('').addHandler(console)
     
     
-    
-    '''
-    # Now, we can log to the root logger, or any other logger. First the root...
-    logging.info('Jackdaws love my big sphinx of quartz.')
-    
-    # Now, define a couple of other loggers which might represent areas in your
-    # application:
-    
-    logger1 = logging.getLogger('myapp.area1')
-    logger2 = logging.getLogger('myapp.area2')
-    
-    logger1.debug('Quick zephyrs blow, vexing daft Jim.')
-    logger1.info('How quickly daft jumping zebras vex.')
-    logger2.warning('Jail zesty vixen who grabbed pay from quack.')
-    logger2.error('The five boxing wizards jump quickly.')       
-    
-    
-    logger.debug('This is a debug message')
-    logger.info('This is an info message')
-    logger.warning('This is a warning message')
-    logger.error('This is an error message')
-    logger.critical('This is a critical error message')    
-    '''
-    
     run(args)
+    
     logging.info('Done')
     

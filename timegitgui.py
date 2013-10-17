@@ -5,6 +5,7 @@ import wx
 import logging
 import ConfigParser
 import timegit
+import subprocess
 
 # Some classes to use for the notebook pages.  Obviously you would
 # want to use something more meaningful for your application, these
@@ -44,6 +45,8 @@ class PageTwo(wx.Panel):
         sizerV.Add(r4,0)
         sizerV.Add(r5,0)
         self.SetSizer(sizerV)
+        
+        r3.SetValue(True)
        
         
 
@@ -58,7 +61,7 @@ class MainFrame(wx.Frame):
         logger = logging.getLogger('timegitgui')
         logger.info('hi from xx')
         
-        wx.Frame.__init__(self, None, title="TimeGit", size = (600,400) )
+        wx.Frame.__init__(self, None, title="TimeGit", size = (640,400) )
         b = 10
         p = wx.Panel(self)
         
@@ -177,6 +180,15 @@ class MainFrame(wx.Frame):
         self.page1.setArgs(self.test_module,self.test_function)
 
     def ReadArgs(self):
+        #self.git_repo ='xx'
+        #self.data_dir = 'yy'
+        #self.test_module = 'zz'
+        #self.test_function = 'aa'
+             
+        #self.config_file_name = 'aaa'
+        #self.page1.module = 'bbb'
+        #self.page1.function_call = 'ccc'
+        
         pass
       
         
@@ -217,11 +229,35 @@ class MainFrame(wx.Frame):
         
     def OnRun(self,event):
         class Args():
-            def __init__(self, config_file, module, function_call):
-                self.config_file = config_file
-                self.module = None #module
-                self.function_call = None #function_call
-        args = Args(self.config_file_name, self.page1.module, self.page1.function_call)
+            def __init__(self, git_repo, data_dir, module, function_call):
+                self.config_file = None
+                self.git_repo = git_repo
+                self.data_dir = data_dir
+                self.module = module
+                self.function_call = function_call
+        logger.info('hi from run')
+        
+        git_repo = self.b22.GetValue()
+        data_dir = self.b32.GetValue()
+        module = self.page1.module.GetValue()
+        function_call = self.page1.function_call.GetValue()
+        
+        #cmd = "python timegit.py -c %s -m %s -f '%s'" %(self.config_filename, module, function_call)
+        #logger.info(cmd)
+        #wd = "/Users/markhallett/Google Drive/git/timegit/timegit"
+        
+        '''
+        proc = subprocess.Popen(cmd, 
+                         stdout=subprocess.PIPE, 
+                         stderr=subprocess.PIPE, 
+                         shell=True) 
+        #,
+        #                 cwd=wd )
+        
+        rtn = proc.wait()
+        '''
+        
+        args = Args( git_repo, data_dir, module, function_call  )
         timegit.run(args)
         
         
@@ -235,8 +271,9 @@ if __name__ == "__main__":
     logger = logging.getLogger('timegitgui')
     logger.info('TEST')
     
-    
-    
+    eg = timegit.test()
+    eg.run()
+        
     app = wx.App()
     x = MainFrame()
     x.Center()

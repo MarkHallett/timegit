@@ -13,6 +13,7 @@ import time
 import ConfigParser
 import argparse
 import logging
+import inspect
 import matplotlib.pyplot as plt
 
 
@@ -21,31 +22,38 @@ class TimeGit(object):
     Main class to get and display the timing data
     '''
     def __init__(self,args,config_file_name):
-        self.loggerTimeGit = logging.getLogger(__name__)
+        file_name = inspect.currentframe().f_code.co_filename 
+        class_name = self.__class__.__name__       
+        
+        logger_details = '%s_%s' %(file_name,class_name)
+        self.loggerTimeGit = logging.getLogger(logger_details)
         self.loggerTimeGit.debug('__init__')        
         
         # read config info   
-        parser = ConfigParser.SafeConfigParser()  
-        parser.read(config_file_name)  
-        self.git_repo = parser.get('TimeGit', 'git_repo')   
-        self.data_dir = parser.get('TimeGit', 'data_dir') 
-        
+        if config_file_name:
+            parser = ConfigParser.SafeConfigParser()  
+            parser.read(config_file_name)  
+            self.git_repo = parser.get('TimeGit', 'git_repo')   
+            self.data_dir = parser.get('TimeGit', 'data_dir') 
+            self.test_module = parser.get('TimeGit', 'test_module') 
+            self.test_function = parser.get('TimeGit', 'test_function')    
         # passed in args will override config file args
+        if args.git_repo:
+            self.git_repo = args.git_repo
+        if args.data_dir:
+            self.data_dir = args.data_dir
         if args.module:
             self.test_module = args.module
-        else:
-            self.test_module = parser.get('TimeGit', 'test_module') 
-            
         if args.function_call:
             self.test_function = args.function_call
-        else:
-            self.test_function = parser.get('TimeGit', 'test_function')    
         
-        self.loggerTimeGit.debug('config_file_name: %s' %config_file_name) 
-        self.loggerTimeGit.debug('git_repo: %s' %self.git_repo) 
-        self.loggerTimeGit.debug('data_dir: %s' %self.data_dir)
-        self.loggerTimeGit.debug('test_module: %s' %self.test_module) 
-        self.loggerTimeGit.debug('test_function: %s' %self.test_function) 
+        self.loggerTimeGit.info(dir(args))
+        self.loggerTimeGit.info(args.module)
+        self.loggerTimeGit.info('config_file_name: %s' %config_file_name) 
+        self.loggerTimeGit.info('git_repo: %s' %self.git_repo) 
+        self.loggerTimeGit.info('data_dir: %s' %self.data_dir)
+        self.loggerTimeGit.info('test_module: %s' %self.test_module) 
+        self.loggerTimeGit.info('test_function: %s' %self.test_function) 
 
 
     def _prep(self):
@@ -181,7 +189,7 @@ class TimeGit(object):
                 cmd = "import %s" %self.test_module
                 exec(cmd)
             except Exception, ImportError:
-                self.loggerTimeGit.error( "No module (%s) in this revision. %s" %(self.test_module,str(ImportError)))
+                self.loggerTimeGit.warning( "No module (%s) in this revision. %s" %(self.test_module,str(ImportError)))
                 continue
             except Exception, e:
                 self.loggerTimeGit.error( "Cant %s: %s" %(cmd,str(e)))
@@ -240,14 +248,20 @@ class TimeGit(object):
 # --------------------
 
 def run(args):
-    if args.config_file:
-        config_file_name = args.config_file
-    else:
-        config_file_name = 'config.cfg'
-        
+    #if args.config_file:
+    #    config_file_name = args.config_file
+    #else:
+    #   config_file_name = 'config.cfg'
+    config_file_name = None   
     myTimeGit = TimeGit(args,config_file_name)
     myTimeGit.run()   
     
+   
+class test():
+    def run(self):
+        logger2 = logging.getLogger('package2.module2')
+        logger2.warning('And this message comes from another module')
+     
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Time git repos')
@@ -291,7 +305,7 @@ if __name__ == '__main__':
     level = LEVELS.get(level_name, logging.NOTSET)
     
     logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        format='%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
                         datefmt='%y-%m-%d %H:%M:%S',
                         filename='timegit.log',
                         filemode='w') 
@@ -308,6 +322,7 @@ if __name__ == '__main__':
     logging.getLogger('').addHandler(console)
     
     
+    logging.debug(args)
     run(args)
     
     logging.info('Done')

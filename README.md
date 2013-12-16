@@ -26,4 +26,4 @@ optional arguments:
 <p><code> -c CONFIG_FILE</code> override the default config file<br /><code> -f FUNCTION_CALL</code> override the config file function call<br /><code> -m MODULE</code> override the config file test module<br /></p>
 <h1>Optional Args</h1>
 <p><code> -v VERBOSITY</code> <br /></p>
-<h1>Advanced Args</h1>
+<h1>TimeGitGui</h1>
